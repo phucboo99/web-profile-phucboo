@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Phucboo Agents</title>
+  <meta name="description" content="Bộ AI Agent cá nhân chạy bằng Claude">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <aside class="rail" id="rail">
+    <div class="rail-head">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">🤖</span>
+        <span>Phucboo Agents</span>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Ngôn ngữ / Language">
+        <button type="button" data-lang="vi" lang="vi">VI</button>
+        <button type="button" data-lang="en" lang="en">EN</button>
+      </div>
+      <button class="icon-btn only-mobile" id="closeRail" data-i18n-aria="closeList">✕</button>
+    </div>
+
+    <label class="search">
+      <span class="sr-only" data-i18n="searchPh"></span>
+      <input id="search" type="search" data-i18n-ph="searchPh" autocomplete="off">
+    </label>
+
+    <nav class="agent-list" id="agentList"></nav>
+
+    <div class="rail-foot">
+      <button class="btn btn-ghost" id="newAgent" data-i18n="newAgent"></button>
+      <button class="btn btn-ghost" id="openSettings" data-i18n="settings"></button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <main class="desk" id="desk">
+    <header class="desk-head">
+      <button class="icon-btn only-mobile" id="openRail" data-i18n-aria="openList">☰</button>
+      <div class="agent-id">
+        <span class="agent-badge" id="agentIcon" aria-hidden="true"></span>
+        <div class="agent-meta">
+          <h1 id="agentName"></h1>
+          <p id="agentDesc"></p>
+        </div>
+      </div>
+      <div class="desk-actions">
+        <span class="model-chip" id="modelChip" data-i18n-title="modelTitle"></span>
+        <button class="btn btn-ghost btn-sm" id="editAgent" data-i18n="editAgent"></button>
+        <button class="btn btn-ghost btn-sm" id="clearChat" data-i18n="newChat" data-i18n-title="newChatTitle"></button>
+      </div>
+    </header>
+
+    <section class="thread" id="thread" aria-live="polite"></section>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <div class="attach-row" id="attachRow" hidden></div>
+      <div class="composer-box">
+        <label class="icon-btn attach-btn" data-i18n-title="attachTitle">
+          <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+          <span aria-hidden="true">📎</span><span class="sr-only" data-i18n="attachSr"></span>
+        </label>
+        <textarea id="input" rows="1" data-i18n-ph="inputPh"></textarea>
+        <button type="submit" class="send-btn" id="sendBtn"></button>
+      </div>
+      <p class="hint" data-i18n="hint"></p>
+    </form>
+  </main>
+</div>
+
+<dialog id="settingsDlg" class="dlg">
+  <form method="dialog" id="settingsForm">
+    <h2 data-i18n="sTitle"></h2>
+    <p class="dlg-note" id="settingsNote" hidden></p>
+
+    <label class="field">
+      <span data-i18n="sKey"></span>
+      <div class="inline">
+        <input type="password" id="apiKey" placeholder="sk-ant-…" spellcheck="false" autocomplete="off">
+        <button type="button" class="btn btn-ghost btn-sm" id="toggleKey"></button>
+      </div>
+      <small data-i18n-html="sKeyHelp"></small>
+    </label>
+
+    <label class="field">
+      <span data-i18n="sModel"></span>
+      <input id="model" list="modelList" spellcheck="false">
+      <datalist id="modelList"></datalist>
+      <small data-i18n="sModelHelp"></small>
+    </label>
+
+    <label class="field">
+      <span data-i18n="sMax"></span>
+      <input type="number" id="maxTokens" min="256" max="64000" step="256">
+    </label>
+
+    <label class="field">
+      <span data-i18n="sDl"></span>
+      <input type="url" id="dlApi" placeholder="https://….workers.dev" spellcheck="false">
+      <small data-i18n="sDlHelp"></small>
+    </label>
+
+    <div class="field">
+      <span data-i18n="sBackup"></span>
+      <div class="inline wrap">
+        <button type="button" class="btn btn-ghost btn-sm" id="exportAgents" data-i18n="sExport"></button>
+        <label class="btn btn-ghost btn-sm"><span data-i18n="sImport"></span><input type="file" id="importAgents" accept="application/json" hidden></label>
+        <button type="button" class="btn btn-danger btn-sm" id="wipeAll" data-i18n="sWipe"></button>
+      </div>
+    </div>
+
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-ghost" id="cancelSettings" data-i18n="cancel"></button>
+      <button type="submit" class="btn btn-primary" data-i18n="sSave"></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="agentDlg" class="dlg dlg-wide">
+  <form method="dialog" id="agentForm">
+    <h2 id="agentDlgTitle"></h2>
+    <div class="grid-2">
+      <label class="field"><span data-i18n="aName"></span><input id="fName" required maxlength="40"></label>
+      <label class="field"><span data-i18n="aGroup"></span><input id="fGroup" list="groupList" maxlength="40"><datalist id="groupList"></datalist></label>
+      <label class="field"><span data-i18n="aIcon"></span><input id="fIcon" maxlength="4"></label>
+      <label class="field"><span data-i18n="aColor"></span><input id="fColor" type="color"></label>
+    </div>
+    <label class="field"><span data-i18n="aDesc"></span><input id="fDesc" maxlength="160"></label>
+    <label class="field">
+      <span data-i18n="aModel"></span>
+      <input id="fModel" list="modelList" spellcheck="false">
+    </label>
+    <label class="field">
+      <span data-i18n="aSystem"></span>
+      <textarea id="fSystem" rows="10" data-i18n-ph="aSystemPh"></textarea>
+    </label>
+    <label class="field">
+      <span data-i18n="aStarters"></span>
+      <textarea id="fStarters" rows="3"></textarea>
+    </label>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-danger" id="deleteAgent"></button>
+      <button type="button" class="btn btn-ghost" id="resetAgent" data-i18n="aReset"></button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" id="cancelAgent" data-i18n="cancel"></button>
+      <button type="submit" class="btn btn-primary" data-i18n="aSave"></button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="assets/i18n.js"></script>
+<script src="assets/agents.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
