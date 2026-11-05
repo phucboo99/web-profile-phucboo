@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Phucboo Agents</title>
+  <meta name="description" content="Bộ AI Agent cá nhân chạy bằng Claude">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- Thanh bên: danh sách agent -->
+  <aside class="rail" id="rail" aria-label="Danh sách agent">
+    <div class="rail-head">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">🤖</span>
+        <span>Phucboo Agents</span>
+      </div>
+      <button class="icon-btn only-mobile" id="closeRail" aria-label="Đóng danh sách">✕</button>
+    </div>
+
+    <label class="search">
+      <span class="sr-only">Tìm agent</span>
+      <input id="search" type="search" placeholder="Tìm agent…" autocomplete="off">
+    </label>
+
+    <nav class="agent-list" id="agentList"></nav>
+
+    <div class="rail-foot">
+      <button class="btn btn-ghost" id="newAgent">＋ Tạo agent</button>
+      <button class="btn btn-ghost" id="openSettings">⚙︎ Cài đặt</button>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <!-- Khu làm việc -->
+  <main class="desk" id="desk">
+    <header class="desk-head">
+      <button class="icon-btn only-mobile" id="openRail" aria-label="Mở danh sách agent">☰</button>
+      <div class="agent-id">
+        <span class="agent-badge" id="agentIcon" aria-hidden="true"></span>
+        <div class="agent-meta">
+          <h1 id="agentName"></h1>
+          <p id="agentDesc"></p>
+        </div>
+      </div>
+      <div class="desk-actions">
+        <span class="model-chip" id="modelChip" title="Model đang dùng"></span>
+        <button class="btn btn-ghost btn-sm" id="editAgent">Sửa agent</button>
+        <button class="btn btn-ghost btn-sm" id="clearChat" title="Xoá lịch sử và bắt đầu cuộc trò chuyện mới">Chat mới</button>
+      </div>
+    </header>
+
+    <section class="thread" id="thread" aria-live="polite"></section>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <div class="attach-row" id="attachRow" hidden></div>
+      <div class="composer-box">
+        <label class="icon-btn attach-btn" title="Đính kèm ảnh (hoặc dán ảnh vào ô nhập)">
+          <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+          <span aria-hidden="true">📎</span><span class="sr-only">Đính kèm ảnh</span>
+        </label>
+        <textarea id="input" rows="1" placeholder="Nhập yêu cầu…"></textarea>
+        <button type="submit" class="send-btn" id="sendBtn">Gửi</button>
+      </div>
+      <p class="hint">Enter để gửi, Shift + Enter để xuống dòng. Dán ảnh trực tiếp vào ô nhập được.</p>
+    </form>
+  </main>
+</div>
+
+<!-- Hộp thoại cài đặt -->
+<dialog id="settingsDlg" class="dlg">
+  <form method="dialog" id="settingsForm">
+    <h2>Cài đặt</h2>
+    <p class="dlg-note" id="settingsNote" hidden></p>
+
+    <label class="field">
+      <span>Anthropic API key</span>
+      <div class="inline">
+        <input type="password" id="apiKey" placeholder="sk-ant-…" spellcheck="false" autocomplete="off">
+        <button type="button" class="btn btn-ghost btn-sm" id="toggleKey">Hiện</button>
+      </div>
+      <small>Lấy key tại <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. Key chỉ lưu trong trình duyệt này, không nằm trong code trên GitHub.</small>
+    </label>
+
+    <label class="field">
+      <span>Model mặc định</span>
+      <input id="model" list="modelList" spellcheck="false">
+      <datalist id="modelList"></datalist>
+      <small>Chọn trong danh sách hoặc gõ tên model khác.</small>
+    </label>
+
+    <label class="field">
+      <span>Độ dài trả lời tối đa (max tokens)</span>
+      <input type="number" id="maxTokens" min="256" max="64000" step="256">
+    </label>
+
+    <div class="field">
+      <span>Sao lưu agent tự tạo</span>
+      <div class="inline wrap">
+        <button type="button" class="btn btn-ghost btn-sm" id="exportAgents">Xuất file JSON</button>
+        <label class="btn btn-ghost btn-sm">Nhập file JSON<input type="file" id="importAgents" accept="application/json" hidden></label>
+        <button type="button" class="btn btn-danger btn-sm" id="wipeAll">Xoá toàn bộ dữ liệu</button>
+      </div>
+    </div>
+
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-ghost" value="cancel" id="cancelSettings">Huỷ</button>
+      <button type="submit" class="btn btn-primary" value="save">Lưu cài đặt</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Hộp thoại tạo / sửa agent -->
+<dialog id="agentDlg" class="dlg dlg-wide">
+  <form method="dialog" id="agentForm">
+    <h2 id="agentDlgTitle">Tạo agent</h2>
+    <div class="grid-2">
+      <label class="field"><span>Tên agent</span><input id="fName" required maxlength="40"></label>
+      <label class="field"><span>Nhóm</span><input id="fGroup" list="groupList" maxlength="40"><datalist id="groupList"></datalist></label>
+      <label class="field"><span>Icon (emoji)</span><input id="fIcon" maxlength="4"></label>
+      <label class="field"><span>Màu nhận diện</span><input id="fColor" type="color"></label>
+    </div>
+    <label class="field"><span>Mô tả ngắn</span><input id="fDesc" maxlength="160"></label>
+    <label class="field">
+      <span>Model riêng (bỏ trống để dùng model mặc định)</span>
+      <input id="fModel" list="modelList" spellcheck="false">
+    </label>
+    <label class="field">
+      <span>Hướng dẫn cho agent (system prompt)</span>
+      <textarea id="fSystem" rows="10" placeholder="Bạn là… Nhiệm vụ của bạn là… Định dạng trả lời…"></textarea>
+    </label>
+    <label class="field">
+      <span>Câu gợi ý (mỗi dòng một câu)</span>
+      <textarea id="fStarters" rows="3"></textarea>
+    </label>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-danger" id="deleteAgent">Xoá agent</button>
+      <button type="button" class="btn btn-ghost" id="resetAgent">Khôi phục mặc định</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-ghost" id="cancelAgent">Huỷ</button>
+      <button type="submit" class="btn btn-primary">Lưu agent</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="assets/agents.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
